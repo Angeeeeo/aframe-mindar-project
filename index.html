@@ -2,21 +2,31 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
-  <title>AR на A-Frame + MindAR</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>AR A-Frame + MindAR</title>
 
   <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
 
-  <!-- MindAR A-Frame -->
-  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+  <!-- MindAR (РАБОЧАЯ СТАБИЛЬНАЯ ВЕРСИЯ 1.1.5) -->
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image-aframe.prod.js"></script>
 
   <style>
-    body { margin:0; font-family: Arial, sans-serif; }
+    body { margin:0; overflow:hidden; font-family: Arial; }
+
+    #hint {
+      position: fixed;
+      top: 10px; left: 10px;
+      padding: 6px 10px;
+      background: rgba(0,0,0,0.5);
+      color: white;
+      border-radius: 6px;
+      z-index: 9999;
+    }
 
     #ui {
       position: fixed;
-      left: 10px; right: 10px; bottom: 10px;
+      bottom: 10px; left: 10px; right: 10px;
       display: flex;
       gap: 8px;
       justify-content: center;
@@ -24,30 +34,21 @@
     }
 
     .btn {
+      padding: 8px 12px;
       background: rgba(0,0,0,0.6);
       color: white;
-      padding: 8px 12px;
-      border-radius: 6px;
       border: none;
-      font-size: 14px;
-    }
-
-    #hint {
-      position: fixed;
-      top: 12px; left: 12px;
-      color: white;
-      background: rgba(0,0,0,0.4);
-      padding: 6px 8px;
       border-radius: 6px;
-      z-index: 9999;
+      font-size: 14px;
     }
   </style>
 </head>
+
 <body>
 
 <div id="hint">Нажмите на экран, чтобы включить камеру...</div>
 
-<!-- Кнопки управления -->
+<!-- UI кнопки -->
 <div id="ui">
   <button class="btn" id="moveLeft">◀ Move</button>
   <button class="btn" id="moveRight">Move ▶</button>
@@ -58,24 +59,24 @@
 
 <!-- A-Frame сцена -->
 <a-scene
-  mindar-image="imageTargetSrc: assets/targets.mind; autoStart: false"
+  mindar-image="imageTargetSrc: assets/targets.mind; autoStart: false;"
+  color-space="sRGB"
   embedded
   vr-mode-ui="enabled: false"
-  color-space="sRGB"
   renderer="colorManagement: true, physicallyCorrectLights: true"
-  device-orientation-permission-ui="enabled: false"
->
-  <a-camera position="0 0 0"></a-camera>
+  device-orientation-permission-ui="enabled: false">
+
+  <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
   <!-- Target index 0 -->
   <a-entity mindar-image-target="targetIndex: 0">
-    <a-entity id="modelContainer" position="0 0 0" rotation="0 0 0" scale="0.08 0.08 0.08">
-      <a-gltf-model src="assets/model.glb"></a-gltf-model>
+    <a-entity id="modelContainer" position="0 0 0" scale="0.08 0.08 0.08">
+      <a-gltf-model id="model" src="assets/model.glb"></a-gltf-model>
     </a-entity>
   </a-entity>
 
-  <a-entity light="type: directional; intensity: 0.8" position="0 1 1"></a-entity>
-  <a-entity light="type: ambient; intensity: 0.6"></a-entity>
+  <a-entity light="type: directional; intensity: 0.8" position="1 1 1"></a-entity>
+  <a-entity light="type: ambient; intensity: 0.7"></a-entity>
 
 </a-scene>
 
@@ -85,11 +86,15 @@
     const hint = document.getElementById("hint");
 
     const start = () => {
-      scene.systems["mindar-image"].start();
-      hint.innerText = "Наведите на маркер target.png";
+      try {
+        scene.systems["mindar-image"].start();
+        hint.innerText = "Наведите камеру на target.png";
+      } catch (e) {
+        console.error("MindAR start error:", e);
+        hint.innerText = "Ошибка запуска камеры";
+      }
     };
 
-    // Разрешение камеры
     document.body.addEventListener("click", function once() {
       start();
       document.body.removeEventListener("click", once);
@@ -101,12 +106,12 @@
 
   document.getElementById("moveLeft").onclick = () => {
     const p = model().getAttribute("position");
-    model().setAttribute("position", {x: p.x - 0.03, y: p.y, z: p.z});
+    model().setAttribute("position", { x: p.x - 0.03, y: p.y, z: p.z });
   };
 
   document.getElementById("moveRight").onclick = () => {
     const p = model().getAttribute("position");
-    model().setAttribute("position", {x: p.x + 0.03, y: p.y, z: p.z});
+    model().setAttribute("position", { x: p.x + 0.03, y: p.y, z: p.z });
   };
 
   let rotating = false;
@@ -114,21 +119,24 @@
     rotating = !rotating;
     if (rotating) rotateLoop();
   };
+
   function rotateLoop() {
     if (!rotating) return;
     const r = model().getAttribute("rotation");
-    model().setAttribute("rotation", {x: r.x, y: r.y + 2, z: r.z});
+    model().setAttribute("rotation", { x: r.x, y: r.y + 1.5, z: r.z });
     requestAnimationFrame(rotateLoop);
   }
 
   document.getElementById("scaleUp").onclick = () => {
     const s = model().getAttribute("scale");
-    model().setAttribute("scale", {x: s.x * 1.1, y: s.y * 1.1, z: s.z * 1.1});
+    model().setAttribute("scale", { x: s.x * 1.1, y: s.y * 1.1, z: s.z * 1.1 });
   };
+
   document.getElementById("scaleDown").onclick = () => {
     const s = model().getAttribute("scale");
-    model().setAttribute("scale", {x: s.x * 0.9, y: s.y * 0.9, z: s.z * 0.9});
+    model().setAttribute("scale", { x: s.x * 0.9, y: s.y * 0.9, z: s.z * 0.9 });
   };
+
 </script>
 
 </body>
