@@ -4,9 +4,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>AR A-Frame + MindAR</title>
-  <!-- A-Frame (рабочая версия 1.5.0) -->
+  <!-- A-Frame 1.5.0 (официальная версия для MindAR) -->
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-  <!-- MindAR 1.2.5 (стабильная версия для A-Frame) -->
+  <!-- MindAR 1.2.5 (стабильная) -->
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
   <style>
     body { margin:0; overflow:hidden; font-family: Arial; }
@@ -46,25 +46,34 @@
     <button class="btn" id="scaleUp">＋ Size</button>
     <button class="btn" id="scaleDown">－ Size</button>
   </div>
-  <!-- A-Frame сцена -->
+  <!-- A-Frame сцена (официальный пример MindAR) -->
   <a-scene
     mindar-image="imageTargetSrc: https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/examples/image-tracking/assets/card-example/card.mind; autoStart: false;"
     color-space="sRGB"
     embedded
     vr-mode-ui="enabled: false"
-    renderer="colorManagement: true, physicallyCorrectLights: true"
+    renderer="colorManagement: true"
     device-orientation-permission-ui="enabled: false">
+    <!-- Ассеты (тестовые из MindAR) -->
     <a-assets>
-      <!-- Тестовая модель из официального примера (замените на assets/model.glb после теста) -->
-      <a-asset-item id="testModel" src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/examples/image-tracking/assets/card-example/card.gltf"></a-asset-item>
+      <img id="card" src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/examples/image-tracking/assets/card-example/card.png" />
+      <a-asset-item id="avatarModel" src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/examples/image-tracking/assets/card-example/softmind/scene.gltf"></a-asset-item>
     </a-assets>
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+    <!-- Контейнер для модели (targetIndex: 0) -->
     <a-entity mindar-image-target="targetIndex: 0">
-      <a-entity id="modelContainer" position="0 0 0" rotation="90 0 0" scale="0.005 0.005 0.005">
-        <!-- Тестовая модель (замените src на assets/model.glb после теста) -->
-        <a-gltf-model id="model" src="#testModel"></a-gltf-model>
+      <!-- Плоскость с маркером (для теста) -->
+      <a-plane src="#card" position="0 0 0" height="0.552" width="1" rotation="0 0 0"></a-plane>
+      <!-- 3D-модель (анимация + твои кнопки будут работать на ней) -->
+      <a-entity id="modelContainer" 
+                rotation="0 0 0" 
+                position="0 0 0.1" 
+                scale="0.005 0.005 0.005"
+                animation="property: position; to: 0 0.1 0.1; dur: 1000; easing: easeInOutQuad; loop: true; dir: alternate">
+        <a-gltf-model id="model" src="#avatarModel"></a-gltf-model>
       </a-entity>
     </a-entity>
+    <!-- Свет (упрощённый, без legacy-ошибки) -->
     <a-entity light="type: directional; intensity: 0.8" position="1 1 1"></a-entity>
     <a-entity light="type: ambient; intensity: 0.7"></a-entity>
   </a-scene>
@@ -73,19 +82,26 @@
       const scene = document.querySelector("a-scene");
       const hint = document.getElementById("hint");
       const start = () => {
+        // Проверяем, загрузилась ли система MindAR
+        if (!scene.systems["mindar-image"]) {
+          hint.innerText = "MindAR не загружен (проверьте интернет)";
+          return;
+        }
         try {
           scene.systems["mindar-image"].start();
-          hint.innerText = "Наведите камеру на маркер (target.png или тестовый card.png)";
+          hint.innerText = "Наведите камеру на тестовый маркер (card.png)";
         } catch (e) {
           console.error("MindAR start error:", e);
-          hint.innerText = "Ошибка запуска камеры (проверьте консоль)";
+          hint.innerText = "Ошибка запуска камеры (см. консоль)";
         }
       };
+      // Запуск по клику (user gesture для камеры)
       document.body.addEventListener("click", function once() {
         start();
         document.body.removeEventListener("click", once);
       });
     });
+    // Управление моделью (твои кнопки)
     const model = () => document.getElementById("modelContainer");
     document.getElementById("moveLeft").onclick = () => {
       const p = model().getAttribute("position");
