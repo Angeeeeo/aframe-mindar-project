@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>AR A-Frame + MindAR</title>
 
-  <!-- A-Frame -->
-  <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
+  <!-- A-Frame (совместимая версия!) -->
+  <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
 
-  <!-- MindAR (РАБОЧАЯ СТАБИЛЬНАЯ ВЕРСИЯ 1.1.5) -->
+  <!-- MindAR 1.1.5 — стабильная версия -->
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image-aframe.prod.js"></script>
 
   <style>
@@ -48,7 +48,6 @@
 
 <div id="hint">Нажмите на экран, чтобы включить камеру...</div>
 
-<!-- UI кнопки -->
 <div id="ui">
   <button class="btn" id="moveLeft">◀ Move</button>
   <button class="btn" id="moveRight">Move ▶</button>
@@ -68,7 +67,6 @@
 
   <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-  <!-- Target index 0 -->
   <a-entity mindar-image-target="targetIndex: 0">
     <a-entity id="modelContainer" position="0 0 0" scale="0.08 0.08 0.08">
       <a-gltf-model id="model" src="assets/model.glb"></a-gltf-model>
@@ -101,7 +99,6 @@
     });
   });
 
-  // Управление моделью
   const model = () => document.getElementById("modelContainer");
 
   document.getElementById("moveLeft").onclick = () => {
@@ -136,7 +133,6 @@
     const s = model().getAttribute("scale");
     model().setAttribute("scale", { x: s.x * 0.9, y: s.y * 0.9, z: s.z * 0.9 });
   };
-
 </script>
 
 </body>
