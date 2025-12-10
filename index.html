@@ -2,126 +2,129 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
-  <title>AR на A-Frame + MindAR — Пример</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AR MindAR Demo</title>
 
-  <!-- A-Frame (через официальный релиз CDN) -->
+  <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
 
-  <!-- MindAR A-Frame плагин (jsDelivr CDN) -->
+  <!-- MindAR A-Frame -->
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
   <style>
-    body { margin:0; font-family: Arial, sans-serif; }
+    body { margin:0; font-family:Arial; overflow:hidden; }
+
+    #hint {
+      position: fixed;
+      top: 10px; left: 10px;
+      color: white;
+      background: rgba(0,0,0,0.45);
+      padding: 6px 10px;
+      border-radius: 6px;
+      z-index: 99999;
+    }
+
     #ui {
-      position: fixed; left: 10px; right: 10px; bottom: 10px;
-      display:flex; gap:8px; justify-content:center;
-      z-index: 9999;
+      position: fixed;
+      bottom: 10px; left: 10px; right: 10px;
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      z-index: 99999;
     }
+
     .btn {
-      background: rgba(0,0,0,0.6); color: white; padding: 8px 12px;
-      border-radius: 6px; border: none; font-size:14px;
+      background: rgba(0,0,0,0.6);
+      color: white;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
     }
-    #hint { position: fixed; top: 12px; left: 12px; color: white; background: rgba(0,0,0,0.4); padding:6px 8px; border-radius:6px; z-index:9999; }
   </style>
 </head>
 <body>
 
-<div id="hint">Наведите камеру на маркер (target.png). На телефоне разрешите доступ к камере.</div>
+<div id="hint">Нажмите по экрану, чтобы включить камеру</div>
 
-<!-- UI-кнопки (на экране) для простого управления моделью -->
+<!-- Панель управления -->
 <div id="ui">
-  <button class="btn" id="moveLeft">◀ Move</button>
-  <button class="btn" id="moveRight">Move ▶</button>
-  <button class="btn" id="rotate">⟳ Rotate</button>
-  <button class="btn" id="scaleUp">＋ Size</button>
-  <button class="btn" id="scaleDown">－ Size</button>
+  <button class="btn" id="moveLeft">Move Left</button>
+  <button class="btn" id="moveRight">Move Right</button>
+  <button class="btn" id="rotate">Rotate</button>
+  <button class="btn" id="scaleUp">Size +</button>
+  <button class="btn" id="scaleDown">Size –</button>
 </div>
 
-<!-- A-Frame сцена с MindAR -->
+<!-- СЦЕНА -->
 <a-scene
-  mindar-image="imageTargetSrc: assets/targets.mind; autoStart: false;"
+  mindar-image="imageTargetSrc: assets/targets.mind; autoStart: false"
   embedded
+  color-space="sRGB"
+  renderer="colorManagement: true, physicallyCorrectLights"
   vr-mode-ui="enabled: false"
-  renderer="antialias: true; alpha: true"
-  gesture-detector
-  >
+  device-orientation-permission-ui="enabled: false">
 
-  <!-- камера MindAR -->
+  <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+  <!-- объект на маркере -->
   <a-entity mindar-image-target="targetIndex: 0">
-    <!-- контейнер для модели, привязанный к маркеру -->
-    <a-entity id="modelContainer" position="0 0 0" rotation="0 0 0" scale="0.08 0.08 0.08">
-      <!-- Замените src на 'assets/model.glb' (ваша модель) -->
-      <a-gltf-model id="model" src="assets/model.glb" position="0 0 0" rotation="0 0 0" scale="1 1 1" shadow></a-gltf-model>
+    <a-entity id="modelContainer" position="0 0 0" scale="0.1 0.1 0.1">
+      <a-gltf-model src="assets/model.glb"></a-gltf-model>
     </a-entity>
   </a-entity>
 
-  <!-- свет -->
-  <a-entity light="type: directional; intensity: 0.7" position="0 1 0"></a-entity>
-  <a-entity light="type: ambient; intensity: 0.6"></a-entity>
+  <a-entity light="type: ambient; intensity: 0.8"></a-entity>
+  <a-entity light="type: directional; intensity: 0.5" position="1 1 1"></a-entity>
 
 </a-scene>
 
 <script>
-  // Получаем элементы
-  const startScene = () => {
-    const sceneEl = document.querySelector('a-scene');
-    // mindar контрол доступен как sceneEl.components['mindar-image']
-    const mindar = sceneEl.components['mindar-image'];
-    if (mindar && !mindar.started) {
-      mindar.start(); // запускаем распознавание и камеру
-      document.getElementById('hint').innerText = 'Наведите камеру на маркер...';
-    }
+  const scene = document.querySelector("a-scene");
+  const model = document.getElementById("modelContainer");
+
+  // Запуск камеры только после первого тапа
+  document.body.addEventListener("click", async () => {
+    const mindarComponent = scene.components["mindar-image"];
+    if (!mindarComponent || mindarComponent.started) return;
+
+    await mindarComponent.start();   // <-- корректный запуск
+    document.getElementById("hint").innerText = "Наведите камеру на маркер";
+  }, { once: true });
+
+  // Управление моделью
+  document.getElementById("moveLeft").onclick = () => {
+    let p = model.getAttribute("position");
+    model.setAttribute("position", {x: p.x - 0.03, y: p.y, z: p.z});
   };
 
-  // Автоматический запуск при загрузке страницы (в большинстве браузеров сначала требует user gesture)
-  window.addEventListener('load', () => {
-    // в некоторых браузерах нужно явно кликнуть/тапнуть для доступа к камере.
-    // даём небольшую подсказку пользователю.
-    document.getElementById('hint').innerText = 'Нажмите экран, чтобы включить камеру';
-    document.body.addEventListener('click', function once() {
-      startScene();
-      document.body.removeEventListener('click', once);
-    });
-  });
+  document.getElementById("moveRight").onclick = () => {
+    let p = model.getAttribute("position");
+    model.setAttribute("position", {x: p.x + 0.03, y: p.y, z: p.z});
+  };
 
-  // Управление моделью через кнопки (простая реализация)
-  const modelContainer = document.getElementById('modelContainer');
-
-  document.getElementById('moveLeft').addEventListener('click', () => {
-    const pos = modelContainer.getAttribute('position');
-    modelContainer.setAttribute('position', { x: pos.x - 0.03, y: pos.y, z: pos.z });
-  });
-  document.getElementById('moveRight').addEventListener('click', () => {
-    const pos = modelContainer.getAttribute('position');
-    modelContainer.setAttribute('position', { x: pos.x + 0.03, y: pos.y, z: pos.z });
-  });
   let rotating = false;
-  document.getElementById('rotate').addEventListener('click', () => {
+  document.getElementById("rotate").onclick = () => {
     rotating = !rotating;
-    if (rotating) {
-      document.getElementById('rotate').innerText = '■ Stop';
-      rotateLoop();
-    } else {
-      document.getElementById('rotate').innerText = '⟳ Rotate';
-    }
-  });
+    if (rotating) rotateLoop();
+  };
+
   function rotateLoop() {
     if (!rotating) return;
-    const rot = modelContainer.getAttribute('rotation');
-    modelContainer.setAttribute('rotation', { x: rot.x, y: rot.y + 2, z: rot.z });
+    let r = model.getAttribute("rotation");
+    model.setAttribute("rotation", {x: r.x, y: r.y + 2, z: r.z});
     requestAnimationFrame(rotateLoop);
   }
-  document.getElementById('scaleUp').addEventListener('click', () => {
-    const s = modelContainer.getAttribute('scale');
-    modelContainer.setAttribute('scale', { x: s.x * 1.12, y: s.y * 1.12, z: s.z * 1.12 });
-  });
-  document.getElementById('scaleDown').addEventListener('click', () => {
-    const s = modelContainer.getAttribute('scale');
-    modelContainer.setAttribute('scale', { x: s.x * 0.88, y: s.y * 0.88, z: s.z * 0.88 });
-  });
 
-  // Подсказка: можно добавить обработчики touch/drag для перемещения, но это уже чуть сложнее.
+  document.getElementById("scaleUp").onclick = () => {
+    let s = model.getAttribute("scale");
+    model.setAttribute("scale", {x: s.x * 1.1, y: s.y * 1.1, z: s.z * 1.1});
+  };
+
+  document.getElementById("scaleDown").onclick = () => {
+    let s = model.getAttribute("scale");
+    model.setAttribute("scale", {x: s.x * 0.9, y: s.y * 0.9, z: s.z * 0.9});
+  };
 </script>
 
 </body>
