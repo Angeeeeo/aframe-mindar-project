@@ -2,19 +2,22 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>AR на A-Frame + MindAR</title>
+
   <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
-  <!-- MindAR A-Frame -->
+
+  <!-- MindAR 1.2.5 -->
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+
   <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      overflow: hidden;
+    body { 
+      margin: 0; 
+      font-family: Arial; 
+      overflow: hidden; 
     }
-    .mindar-ui-overlay, .mindar-ui-scanning { display: none !important; }
+
     #ui {
       position: fixed;
       left: 10px; right: 10px; bottom: 10px;
@@ -23,6 +26,7 @@
       justify-content: center;
       z-index: 9999;
     }
+
     .btn {
       background: rgba(0,0,0,0.6);
       color: white;
@@ -32,7 +36,11 @@
       font-size: 14px;
       cursor: pointer;
     }
-    .btn:active { background: rgba(0,0,0,0.8); }
+
+    .btn:active {
+      background: rgba(0,0,0,0.8);
+    }
+
     #hint {
       position: fixed;
       top: 12px; left: 12px;
@@ -45,7 +53,9 @@
     }
   </style>
 </head>
+
 <body>
+
 <div id="hint">Нажмите на экран, чтобы включить камеру...</div>
 
 <!-- Кнопки управления -->
@@ -57,24 +67,21 @@
   <button class="btn" id="scaleDown">－ Size</button>
 </div>
 
-<!-- A-Frame сцена — теперь использует ТВОИ файлы -->
+<!-- A-Frame сцена -->
 <a-scene
   mindar-image="imageTargetSrc: assets/targets.mind; autoStart: false;"
   embedded
   vr-mode-ui="enabled: false"
   color-space="sRGB"
   renderer="colorManagement: true, physicallyCorrectLights: true"
-  device-orientation-permission-ui="enabled: false"
->
+  device-orientation-permission-ui="enabled: false">
+
   <a-camera position="0 0 0" look-controls="enabled: false" wasd-controls="enabled: false"></a-camera>
 
-  <!-- Твой маркер (targetIndex: 0) -->
+  <!-- Target index 0 -->
   <a-entity mindar-image-target="targetIndex: 0">
-    <!-- Если хочешь видеть полупрозрачную подложку маркера — раскомментируй строку ниже -->
-    <!-- <a-plane position="0 0 0" width="1" height="0.55" rotation="0 0 0" opacity="0.4" color="#333"></a-plane> -->
-
-    <!-- Твоя модель + контейнер для кнопок управления -->
-    <a-entity id="modelContainer" position="0 0 0.1" rotation="0 0 0" scale="0.3 0.3 0.3">
+    <!-- Модель размещаем чуть выше поверхности маркера -->
+    <a-entity id="modelContainer" position="0 0 0.05" rotation="0 0 0" scale="0.5 0.5 0.5">
       <a-gltf-model src="assets/model.glb"></a-gltf-model>
     </a-entity>
   </a-entity>
@@ -82,6 +89,7 @@
   <!-- Свет -->
   <a-entity light="type: directional; intensity: 0.8" position="0 1 1"></a-entity>
   <a-entity light="type: ambient; intensity: 0.6"></a-entity>
+
 </a-scene>
 
 <script>
@@ -90,66 +98,63 @@
     const hint = document.getElementById("hint");
 
     sceneEl.addEventListener("loaded", () => {
+      // Клик по экрану для запуска камеры
       document.body.addEventListener("click", async function once() {
         document.body.removeEventListener("click", once);
+
         try {
           hint.innerText = "Запуск камеры...";
-          const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
           const mindarSystem = sceneEl.systems["mindar-image-system"];
           if (mindarSystem) {
             await mindarSystem.start();
             hint.innerText = "Наведите на маркер";
+          } else {
+            throw new Error("MindAR system not found");
           }
         } catch (error) {
-          console.error(error);
-          hint.innerHTML = error.name === 'NotAllowedError' 
-            ? "Доступ к камере запрещён. Разрешите и обновите страницу." 
-            : "Ошибка: " + error.message;
+          console.error("MindAR start error:", error);
+          hint.innerText = "Ошибка запуска камеры";
         }
       });
     });
   });
 
-  // Сообщения при нахождении/потере маркера
-  const arEntity = document.querySelector("[mindar-image-target]");
-  arEntity.addEventListener("targetFound", () => {
-    document.getElementById("hint").innerText = "Маркер найден!";
-    document.getElementById("hint").style.background = "rgba(0,180,0,0.7)";
-  });
-  arEntity.addEventListener("targetLost", () => {
-    document.getElementById("hint").innerText = "Поиск маркера...";
-    document.getElementById("hint").style.background = "rgba(0,0,0,0.4)";
-  });
-
-  // Кнопки управления моделью
+  // Управление моделью
   const model = () => document.getElementById("modelContainer");
+
   document.getElementById("moveLeft").onclick = () => {
     const p = model().getAttribute("position");
-    model().setAttribute("position", {x: p.x - 0.03, y: p.y, z: p.z});
+    model().setAttribute("position", { x: p.x - 0.03, y: p.y, z: p.z });
   };
+
   document.getElementById("moveRight").onclick = () => {
     const p = model().getAttribute("position");
-    model().setAttribute("position", {x: p.x + 0.03, y: p.y, z: p.z});
+    model().setAttribute("position", { x: p.x + 0.03, y: p.y, z: p.z });
   };
+
   let rotating = false;
   document.getElementById("rotate").onclick = () => {
     rotating = !rotating;
     if (rotating) rotateLoop();
   };
+
   function rotateLoop() {
     if (!rotating) return;
     const r = model().getAttribute("rotation");
-    model().setAttribute("rotation", {x: r.x, y: r.y + 2, z: r.z});
+    model().setAttribute("rotation", { x: r.x, y: r.y + 2, z: r.z });
     requestAnimationFrame(rotateLoop);
   }
+
   document.getElementById("scaleUp").onclick = () => {
     const s = model().getAttribute("scale");
-    model().setAttribute("scale", {x: s.x * 1.1, y: s.y * 1.1, z: s.z * 1.1});
+    model().setAttribute("scale", { x: s.x * 1.1, y: s.y * 1.1, z: s.z * 1.1 });
   };
+
   document.getElementById("scaleDown").onclick = () => {
-    s = model().getAttribute("scale");
-    model().setAttribute("scale", {x: s.x * 0.9, y: s.y * 0.9, z: s.z * 0.9});
+    const s = model().getAttribute("scale");
+    model().setAttribute("scale", { x: s.x * 0.9, y: s.y * 0.9, z: s.z * 0.9 });
   };
 </script>
+
 </body>
 </html>
